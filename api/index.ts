@@ -9,6 +9,12 @@ const INDIAN_KEYWORDS = [
 const checkIsIndianCategory = (name: string) => {
   if (!name) return false;
   const lowerName = name.toLowerCase();
+  
+  // Exclude 24/7 categories
+  if (lowerName.includes('24/7')) {
+    return false;
+  }
+
   return INDIAN_KEYWORDS.some(k => lowerName.includes(k));
 };
 
