@@ -131,32 +131,57 @@ app.get('/api/playlist.m3u', async (req, res) => {
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const baseUrl = `${protocol}://${host}`;
 
-    let m3u = "#EXTM3U\n";
-    for (const stream of indianStreams) {
-      const streamId = stream.stream_id;
-      const name = stream.name;
-      
-      const normStreamName = normalizeLogoName(name);
-      
-      // Exact match
-      let logo = externalLogos[normStreamName] || '';
-      
-      if (!logo && normStreamName.length > 2) {
-        // Substring match
-         for (const [key, logoUrl] of Object.entries(externalLogos)) {
-            if (key.length > 2 && (normStreamName.includes(key) || key.includes(normStreamName))) {
-               logo = logoUrl;
-               break;
-            }
-         }
-      }
-      
-      logo = logo || stream.stream_icon || '';
-      
-      const cat = indianCategories.find(c => c.category_id === stream.category_id);
-      const group = cat ? cat.category_name : 'Indian';
+  let m3u = "#EXTM3U\n";
+  for (const stream of indianStreams) {
+    const streamId = stream.stream_id;
+    const name = stream.name;
+    
+    const normStreamName = normalizeLogoName(name);
+    
+    // Exact match
+    let logo = externalLogos[normStreamName] || '';
+    
+    if (!logo && normStreamName.length > 2) {
+      // Substring match
+       for (const [key, logoUrl] of Object.entries(externalLogos)) {
+          if (key.length > 2 && (normStreamName.includes(key) || key.includes(normStreamName))) {
+             logo = logoUrl;
+             break;
+          }
+       }
+    }
+    
+    logo = logo || stream.stream_icon || '';
+    
+    const cat = indianCategories.find(c => c.category_id === stream.category_id);
+    const originalGroup = cat ? (cat.category_name || '') : 'Indian';
+    
+    let group = 'T-Play Channels';
+    const lowerGroup = originalGroup.toLowerCase();
+    
+    if (lowerGroup.includes('movie')) group = 'T-Play Movies';
+    else if (lowerGroup.includes('entrtnmnt') || lowerGroup.includes('entertainment')) group = 'T-Play Entertainment';
+    else if (lowerGroup.includes('music') || lowerGroup.includes('song')) group = 'T-Play Music';
+    else if (lowerGroup.includes('news')) group = 'T-Play News';
+    else if (lowerGroup.includes('sport')) group = 'T-Play Sports';
+    else if (lowerGroup.includes('kids') || lowerGroup.includes('cartoon')) group = 'T-Play Kids';
+    else if (lowerGroup.includes('documentary') || lowerGroup.includes('knowledge') || lowerGroup.includes('infotainment')) group = 'T-Play Infotainment';
+    else if (lowerGroup.includes('devotional') || lowerGroup.includes('spiritual') || lowerGroup.includes('darshan')) group = 'T-Play Devotional';
+    else if (lowerGroup.includes('hindi')) group = 'T-Play Hindi';
+    else if (lowerGroup.includes('tamil')) group = 'T-Play Tamil';
+    else if (lowerGroup.includes('telugu')) group = 'T-Play Telugu';
+    else if (lowerGroup.includes('malayalam')) group = 'T-Play Malayalam';
+    else if (lowerGroup.includes('kannada')) group = 'T-Play Kannada';
+    else if (lowerGroup.includes('bengali') || lowerGroup.includes('bangla')) group = 'T-Play Bengali';
+    else if (lowerGroup.includes('marathi')) group = 'T-Play Marathi';
+    else if (lowerGroup.includes('punjabi')) group = 'T-Play Punjabi';
+    else if (lowerGroup.includes('gujarati')) group = 'T-Play Gujarati';
+    else if (lowerGroup.includes('bhojpuri')) group = 'T-Play Bhojpuri';
+    else if (lowerGroup.includes('oriya') || lowerGroup.includes('odia')) group = 'T-Play Odia';
+    else if (lowerGroup.includes('assamese')) group = 'T-Play Assamese';
+    else group = 'T-Play Mix';
 
-      let finalUrl = `${baseUrl}/api/play?id=${streamId}`;
+    let finalUrl = `${baseUrl}/api/play?id=${streamId}`;
       if (username !== config.username || password !== config.password || url !== config.url) {
         finalUrl += `&url=${encodeURIComponent(url as string)}&u=${encodeURIComponent(username as string)}&p=${encodeURIComponent(password as string)}`;
       }
