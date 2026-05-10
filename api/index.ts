@@ -104,7 +104,12 @@ app.get('/api/playlist.m3u', async (req, res) => {
     const streamsRes = await fetch(`${url}/player_api.php?username=${encodeURIComponent(username as string)}&password=${encodeURIComponent(password as string)}&action=get_live_streams`);
     const allStreams = await streamsRes.json();
 
-    let indianStreams = Array.isArray(allStreams) ? allStreams.filter(s => catIds.includes(s.category_id)) : [];
+    let indianStreams = Array.isArray(allStreams) ? allStreams.filter(s => {
+      if (!catIds.includes(s.category_id)) return false;
+      const lowerName = (s.name || '').toLowerCase();
+      if (lowerName.includes('24/7') || lowerName.includes('24x7')) return false;
+      return true;
+    }) : [];
 
     // Fetch high quality logos from YGX API
     let externalLogos: Record<string, string> = {};
