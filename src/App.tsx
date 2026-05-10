@@ -27,7 +27,7 @@ export default function App() {
           <div className="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center">
             <Tv className="text-indigo-500 w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white">Indian Channels Playlist</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-white">T-PLAY</h1>
         </div>
 
         <p className="text-neutral-400 text-sm mb-6">
