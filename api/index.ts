@@ -1,4 +1,22 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
+
+let config = {
+  url: 'http://premimum.online',
+  username: 'johannes',
+  password: 'johannes123'
+};
+
+try {
+  const configPath = path.resolve(process.cwd(), 'api', 'config.json');
+  if (fs.existsSync(configPath)) {
+    const fileConf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    config = { ...config, ...fileConf };
+  }
+} catch (e) {
+  console.error("Config load error:", e);
+}
 
 const INDIAN_KEYWORDS = [
   'india', 'hindi', 'tamil', 'telugu', 'malayalam', 'kannada', 
@@ -10,8 +28,8 @@ const checkIsIndianCategory = (name: string) => {
   if (!name) return false;
   const lowerName = name.toLowerCase();
   
-  // Exclude 24/7 categories
-  if (lowerName.includes('24/7')) {
+  // Exclude 24/7 and 24x7 categories
+  if (lowerName.includes('24/7') || lowerName.includes('24x7')) {
     return false;
   }
 
@@ -68,9 +86,9 @@ app.post('/api/xtream', async (req, res) => {
 });
 
 app.get('/api/playlist.m3u', async (req, res) => {
-  const url = req.query.url as string || 'http://premimum.online';
-  const username = req.query.username as string || 'johannes';
-  const password = req.query.password as string || 'johannes123';
+  const url = req.query.url as string || config.url;
+  const username = req.query.username as string || config.username;
+  const password = req.query.password as string || config.password;
 
   if (!url || !username || !password) return res.status(400).send("Missing credentials");
 
@@ -139,7 +157,7 @@ app.get('/api/playlist.m3u', async (req, res) => {
       const group = cat ? cat.category_name : 'Indian';
 
       let finalUrl = `${baseUrl}/api/play?id=${streamId}`;
-      if (username !== 'johannes' || password !== 'johannes123' || url !== 'http://premimum.online') {
+      if (username !== config.username || password !== config.password || url !== config.url) {
         finalUrl += `&url=${encodeURIComponent(url as string)}&u=${encodeURIComponent(username as string)}&p=${encodeURIComponent(password as string)}`;
       }
 
@@ -159,9 +177,9 @@ app.get('/api/playlist.m3u', async (req, res) => {
 
 app.get('/api/play', (req, res) => {
   const id = req.query.id as string;
-  const url = req.query.url as string || 'http://premimum.online';
-  const username = req.query.u as string || 'johannes';
-  const password = req.query.p as string || 'johannes123';
+  const url = req.query.url as string || config.url;
+  const username = req.query.u as string || config.username;
+  const password = req.query.p as string || config.password;
 
   if (!id) {
     return res.status(400).send("Missing stream ID");
