@@ -33,6 +33,9 @@ const checkIsIndianCategory = (name: string) => {
     return false;
   }
 
+  // Include exactly KIDS
+  if (lowerName.trim() === 'kids') return true;
+
   return INDIAN_KEYWORDS.some(k => lowerName.includes(k));
 };
 
