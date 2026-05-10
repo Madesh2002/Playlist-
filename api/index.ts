@@ -54,7 +54,10 @@ app.post('/api/xtream', async (req, res) => {
 });
 
 app.get('/api/playlist.m3u', async (req, res) => {
-  const { url, username, password } = req.query;
+  const url = req.query.url as string || 'http://premimum.online';
+  const username = req.query.username as string || 'johannes';
+  const password = req.query.password as string || 'johannes123';
+
   if (!url || !username || !password) return res.status(400).send("Missing credentials");
 
   try {

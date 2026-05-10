@@ -52,8 +52,11 @@ export default function App() {
       
       // Generate standard playlist URL
       const host = window.location.origin;
-      const url = `${host}/api/playlist.m3u?url=${encodeURIComponent(credentials.url)}&username=${encodeURIComponent(credentials.username)}&password=${encodeURIComponent(credentials.password)}`;
-      setPlaylistUrl(url);
+      let urlStr = `${host}/api/playlist.m3u`;
+      if (credentials.username !== 'johannes' || credentials.password !== 'johannes123' || credentials.url !== 'http://premimum.online') {
+        urlStr += `?url=${encodeURIComponent(credentials.url)}&username=${encodeURIComponent(credentials.username)}&password=${encodeURIComponent(credentials.password)}`;
+      }
+      setPlaylistUrl(urlStr);
 
     } catch (err: any) {
       setError(err.message || 'Failed to connect. Check URL/Credentials.');
