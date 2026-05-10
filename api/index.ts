@@ -206,6 +206,19 @@ app.get('/api/playlist.m3u', async (req, res) => {
 });
 
 app.get('/api/play', (req, res) => {
+  const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+  
+  // Simple check for standard browsers
+  const isBrowser = userAgent.includes('mozilla') && 
+                    (userAgent.includes('chrome') || userAgent.includes('safari') || userAgent.includes('firefox') || userAgent.includes('edge'));
+                    
+  // Allow known players that might use a webview
+  const isPlayer = userAgent.includes('vlc') || userAgent.includes('tivimate') || userAgent.includes('smarters') || userAgent.includes('exoplayer');
+
+  if (isBrowser && !isPlayer) {
+    return res.status(404).send("404 Not Found");
+  }
+
   const id = req.query.id as string;
   const url = req.query.url as string || config.url;
   const username = req.query.u as string || config.username;
