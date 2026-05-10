@@ -18,6 +18,20 @@ const checkIsIndianCategory = (name: string) => {
   return INDIAN_KEYWORDS.some(k => lowerName.includes(k));
 };
 
+const normalizeLogoName = (name: string) => {
+  if (!name) return '';
+  let s = name.toLowerCase();
+  // Replace & with 'and' (e.g. &TV -> andtv, &pictures -> andpictures)
+  s = s.replace(/&/g, 'and');
+  // Remove bracketed qualities or extra info
+  s = s.replace(/\[.*?\]|\(.*?\)/g, ' ');
+  // Remove common suffixes/prefixes
+  s = s.replace(/\b(hd|fhd|sd|4k|2k|8k|1080p|720p|hevc|hq|uhd|vip|premium|uk|us|usa|in|ind|india|pb|airtel)\b/gi, ' ');
+  // Remove non-alphanumeric
+  s = s.replace(/[^a-z0-9]/g, '');
+  return s;
+};
+
 const app = express();
 app.use(express.json());
 
@@ -83,8 +97,10 @@ app.get('/api/playlist.m3u', async (req, res) => {
         if (logoData?.data?.channels) {
           logoData.data.channels.forEach((ch: any) => {
             if (ch.name && ch.logo_url) {
-              const normName = ch.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-              externalLogos[normName] = ch.logo_url;
+              const normName = normalizeLogoName(ch.name);
+              if (normName) {
+                externalLogos[normName] = ch.logo_url;
+              }
             }
           });
         }
@@ -102,10 +118,22 @@ app.get('/api/playlist.m3u', async (req, res) => {
       const streamId = stream.stream_id;
       const name = stream.name;
       
-      // Clean name to match logo (e.g. remove "IN |" prefixes)
-      const cleanName = name.replace(/^(IN\s*[:|\|-]\s*|IND\s*[:|\|-]\s*|INDIA\s*[:|\|-]\s*)/i, '');
-      const normName = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const logo = externalLogos[normName] || stream.stream_icon || '';
+      const normStreamName = normalizeLogoName(name);
+      
+      // Exact match
+      let logo = externalLogos[normStreamName] || '';
+      
+      if (!logo && normStreamName.length > 2) {
+        // Substring match
+         for (const [key, logoUrl] of Object.entries(externalLogos)) {
+            if (key.length > 2 && (normStreamName.includes(key) || key.includes(normStreamName))) {
+               logo = logoUrl;
+               break;
+            }
+         }
+      }
+      
+      logo = logo || stream.stream_icon || '';
       
       const cat = indianCategories.find(c => c.category_id === stream.category_id);
       const group = cat ? cat.category_name : 'Indian';
