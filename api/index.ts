@@ -46,10 +46,12 @@ const normalizeLogoName = (name: string) => {
   s = s.replace(/&/g, 'and');
   // Remove bracketed qualities or extra info
   s = s.replace(/\[.*?\]|\(.*?\)/g, ' ');
+  // Handle plurals
+  s = s.replace(/\bmovies\b/gi, 'movie');
   // Remove common suffixes/prefixes
-  s = s.replace(/\b(hd|fhd|sd|4k|2k|8k|1080p|720p|hevc|hq|uhd|vip|premium|uk|us|usa|in|ind|india|pb|airtel)\b/gi, ' ');
-  // Remove non-alphanumeric
-  s = s.replace(/[^a-z0-9]/g, '');
+  s = s.replace(/\b(sports|sport|hd|fhd|sd|4k|2k|8k|1080p|720p|hevc|hq|uhd|vip|premium|uk|us|usa|in|ind|india|pb|airtel|tv|channel)\b/gi, ' ');
+  // Remove non-alphanumeric but preserve +
+  s = s.replace(/[^a-z0-9+]/g, '');
   return s;
 };
 
@@ -149,18 +151,8 @@ app.get('/api/playlist.m3u', async (req, res) => {
     // Exact match
     let logo = externalLogos[normStreamName] || '';
     
-    if (!logo && normStreamName.length > 2) {
-      // Substring match
-       for (const [key, logoUrl] of Object.entries(externalLogos)) {
-          if (key.length > 2 && (normStreamName.includes(key) || key.includes(normStreamName))) {
-             logo = logoUrl;
-             break;
-          }
-       }
-    }
-    
-    // Only use logo from external fetcher to avoid generic placeholder logos
-    logo = logo || '';
+    // If not found, use a transparent 1x1 pixel so Tivimate ignores it without showing fallback text bubbles.
+    logo = logo || 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Transparent.gif';
     
     const cat = indianCategories.find(c => c.category_id === stream.category_id);
     const originalGroup = cat ? (cat.category_name || '') : 'Indian';
