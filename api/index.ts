@@ -156,7 +156,8 @@ app.get('/api/playlist.m3u', async (req, res) => {
        }
     }
     
-    logo = logo || stream.stream_icon || '';
+    // Only use logo from external fetcher to avoid generic placeholder logos
+    logo = logo || '';
     
     const cat = indianCategories.find(c => c.category_id === stream.category_id);
     const originalGroup = cat ? (cat.category_name || '') : 'Indian';
