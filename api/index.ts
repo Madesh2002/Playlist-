@@ -74,6 +74,10 @@ app.get('/api/playlist.m3u', async (req, res) => {
 
     let indianStreams = Array.isArray(allStreams) ? allStreams.filter(s => catIds.includes(s.category_id)) : [];
 
+    const host = req.headers.host;
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const baseUrl = `${protocol}://${host}`;
+
     let m3u = "#EXTM3U\n";
     for (const stream of indianStreams) {
       const streamId = stream.stream_id;
@@ -84,9 +88,10 @@ app.get('/api/playlist.m3u', async (req, res) => {
       const group = cat ? cat.category_name : 'Indian';
 
       const xtreamUrl = `${url}/live/${username}/${password}/${streamId}.ts`;
+      const finalUrl = `${baseUrl}/api/play?url=${encodeURIComponent(xtreamUrl)}`;
 
       m3u += `#EXTINF:-1 tvg-id="${stream.epg_channel_id || ''}" tvg-logo="${logo}" group-title="${group}",${name}\n`;
-      m3u += `${xtreamUrl}\n`;
+      m3u += `${finalUrl}\n`;
     }
 
     res.setHeader('Content-Type', 'audio/x-mpegurl');
@@ -97,6 +102,17 @@ app.get('/api/playlist.m3u', async (req, res) => {
     console.error("Playlist generation error:", error);
     res.status(500).send("Error generating playlist");
   }
+});
+
+app.get('/api/play', (req, res) => {
+  const targetUrl = req.query.url as string;
+
+  if (!targetUrl) {
+    return res.status(400).send("Missing stream URL");
+  }
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.redirect(302, targetUrl);
 });
 
 export default app;
