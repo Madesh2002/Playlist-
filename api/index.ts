@@ -42,17 +42,52 @@ const checkIsIndianCategory = (name: string) => {
 const normalizeLogoName = (name: string) => {
   if (!name) return '';
   let s = name.toLowerCase();
-  // Replace & with 'and' (e.g. &TV -> andtv, &pictures -> andpictures)
-  s = s.replace(/&/g, 'and');
+  
+  // Replace & with 'and ' (note the space so boundaries work later)
+  s = s.replace(/&/g, 'and ');
+  
   // Remove bracketed qualities or extra info
   s = s.replace(/\[.*?\]|\(.*?\)/g, ' ');
-  // Handle plurals
+
+  // Standardize 'movies' -> 'movie'
   s = s.replace(/\bmovies\b/gi, 'movie');
+
+  // Fix known Indian channel names that merge words
+  s = s.replace(/\bpicture\b/gi, 'pictures'); // 'and picture' -> 'and pictures'
+  s = s.replace(/\bzeetv\b/gi, 'zee tv');     // zeetv -> zee tv -> zee
+  s = s.replace(/\bsonytv\b/gi, 'sony tv');   // sonytv -> sony
+  s = s.replace(/\bcolorstv\b/gi, 'colors tv'); // colorstv -> colors
+  
   // Remove common suffixes/prefixes
   s = s.replace(/\b(sports|sport|hd|fhd|sd|4k|2k|8k|1080p|720p|hevc|hq|uhd|vip|premium|uk|us|usa|in|ind|india|pb|airtel|tv|channel)\b/gi, ' ');
+  
   // Remove non-alphanumeric but preserve +
   s = s.replace(/[^a-z0-9+]/g, '');
+  
   return s;
+};
+
+const cleanChannelName = (name: string) => {
+  if (!name) return '';
+  let s = name;
+  s = s.replace(/\[.*?\]|\(.*?\)/g, ' '); 
+  s = s.replace(/\b(hd|fhd|sd|4k|2k|8k|1080p|720p|hevc|hq|uhd|vip|premium|uk|us|usa|in|ind|india|pb|airtel)\b/gi, ' ');
+  s = s.replace(/\.+$/g, '');
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+};
+
+// Fallback high-quality logos for channels not present in the YGX API (mostly English Indian channels)
+const MANUAL_LOGOS: Record<string, string> = {
+  'starmovie': 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/india/star-movies-in.png',
+  'starmovieselect': 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/india/star-movies-select-hd-in.png',
+  'zeecafe': 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/india/zee-cafe-in.png',
+  'andprive': 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/india/and-prive-hd-in.png',
+  'andflix': 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/india/and-flix-in.png',
+  'mn+': 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/india/mn-plus-hd-in.png',
+  'mnx': 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/india/mnx-hd-in.png',
+  'romedynow': 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/india/romedy-now-in.png',
+  'colorsinfinity': 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/india/colors-infinity-in.png',
 };
 
 const app = express();
@@ -145,14 +180,29 @@ app.get('/api/playlist.m3u', async (req, res) => {
   for (const stream of indianStreams) {
     const streamId = stream.stream_id;
     const name = stream.name;
+    const displayName = cleanChannelName(name);
     
     const normStreamName = normalizeLogoName(name);
     
-    // Exact match
+    // Exact match from YGX
     let logo = externalLogos[normStreamName] || '';
     
-    // If not found, use a transparent 1x1 pixel so Tivimate ignores it without showing fallback text bubbles.
-    logo = logo || 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Transparent.gif';
+    // Check Manual fallback for English channels
+    if (!logo) {
+       logo = MANUAL_LOGOS[normStreamName] || '';
+    }
+
+    // If still no high quality logo found, check stream's native icon.
+    // If it's a known generic iptv placeholder (like images-4.png), ignore it.
+    if (!logo && stream.stream_icon) {
+      if (!stream.stream_icon.includes('premimum.online') && !stream.stream_icon.includes('images-4.png')) {
+        logo = stream.stream_icon;
+      }
+    }
+    
+    // Notice: if logo is still empty (''), we let it evaluate to empty string.
+    // Tivimate generates text bubbles for empty strings. We removed the transparent GIF hack
+    // so users can see Tivimate's colorful text bubbles instead of an invisible transparent channel icon.
     
     const cat = indianCategories.find(c => c.category_id === stream.category_id);
     const originalGroup = cat ? (cat.category_name || '') : 'Indian';
@@ -187,7 +237,7 @@ app.get('/api/playlist.m3u', async (req, res) => {
         finalUrl += `&url=${encodeURIComponent(url as string)}&u=${encodeURIComponent(username as string)}&p=${encodeURIComponent(password as string)}`;
       }
 
-      m3u += `#EXTINF:-1 tvg-id="${stream.epg_channel_id || ''}" tvg-logo="${logo}" group-title="${group}",${name}\n`;
+      m3u += `#EXTINF:-1 tvg-id="${stream.epg_channel_id || ''}" tvg-logo="${logo}" group-title="${group}",${displayName}\n`;
       m3u += `${finalUrl}\n`;
     }
 
